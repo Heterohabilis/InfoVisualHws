@@ -1,13 +1,24 @@
 import pandas as pd
-from matplotlib import pyplot as plt
+import altair as alt
 
-# for readable code
+# for readable
 DATA_FILE = "hw1/data/global-temperature-anomalies-by-month.csv"
 CODE = 'Code'
 YEAR = 'Year'
 TA = 'Temperature anomaly'
 ENTITY = 'Entity'
 DATE = 'Date'
+
+
+# calc upper bound and lower bound, to eliminate outliers
+def upper_lower_bound_handler(df):
+    QT1 = df[TA].quantile(.25)
+    QT3 = df[TA].quantile(.75)
+    IQR = QT3 - QT1
+
+    upper = QT3 + 1.5 * IQR
+    lower = QT1 - 1.5 * IQR
+    return upper, lower
 
 
 if __name__ == "__main__":
@@ -22,12 +33,7 @@ if __name__ == "__main__":
     df = df.set_index(DATE).sort_index()
 
     # findout qt1 and qt3
-    QT1 = df[TA].quantile(0.25)
-    QT3 = df[TA].quantile(0.75)
-    IQR = QT3 - QT1
-
-    upper = QT3 + 1.5 * IQR
-    lower = QT1 - 1.5 * IQR
+    upper, lower = upper_lower_bound_handler(df)
 
     # We remove outliers BY ROW, thus we need to recover the removed rows
     df_clean = df[(df[TA] >= lower) &
@@ -47,7 +53,8 @@ if __name__ == "__main__":
 
     df_clean[TA] = df_clean[TA].interpolate(method = 'linear')
 
-    df_clean = df_clean.sort_index()
+    # to plot it conveniently, reset the index to a normal column as 'Date'
+    df_clean = df_clean.reset_index().rename(columns={'index': 'Date'})
 
     # calculate 20th century avg:
     _20_cent_avg = (df_clean[(df_clean[YEAR] >= 1900) &
@@ -56,27 +63,46 @@ if __name__ == "__main__":
 
     # print(df_clean.info)
 
-    plt.figure()
-    plt.plot(df_clean.index, df_clean[TA],
-             color='gray', linewidth=0.5, alpha=0.5)
+    # delta = {TA - avg}
+    df_clean["delta"] = df_clean["Temperature anomaly"] - _20_cent_avg
 
-    # red: > than avg
-    plt.fill_between(df_clean.index, df_clean[TA], _20_cent_avg,
-                     where=(df_clean[TA] >= _20_cent_avg),
-                     color='red', interpolate=True, label='Above Average', alpha = .5)
 
-    # blue: < than avg
-    plt.fill_between(df_clean.index, df_clean[TA], _20_cent_avg,
-                     where=(df_clean[TA] <= _20_cent_avg),
-                     color='blue',interpolate=True, label='Below Average', alpha = .5)
+    # plot it
+    # To achieve the color changing on the LINE, I choose to render the line by segments
+    # each segment has its own color
+    segments = (
+        alt.Chart(df_clean[[DATE, TA, "delta"]])
+        .transform_window(
+            sort=[{"field": DATE, "order": "ascending"}],   #early->late
+            next_date=f"lead({DATE})",
+            next_ta=f"lead({TA})",
+            next_delta="lead(delta)",
+        )
+        .transform_calculate(seg_delta="(datum.delta + datum.next_delta) / 2")
+        .mark_rule(strokeWidth=2)
+        .encode(
+            x=alt.X(f"{DATE}:T", title="Year"),
+            x2="next_date:T",
+            y=alt.Y(f"{TA}:Q", title="Temperature Anomaly"),
+            y2="next_ta:Q",
+            color=alt.Color(
+                "seg_delta:Q",
+                #higher->more red, lower ->more blue
+                scale=alt.Scale(scheme="redblue", reverse=True),
+                legend=alt.Legend(title=f"vs 20c avg ({_20_cent_avg:.2f} °C)"),
+            ),
+        )
+        .properties(title="Temperature Anomalies", width=600, height=400)
+    )
 
-    plt.axhline(y=_20_cent_avg, color='black', linestyle='--', linewidth=1, label='20th Century Avg')
-    plt.title('Global Temperature Anomalies')
-    plt.ylabel('Temperature Anomaly')
-    plt.xlabel('Year')
-    plt.legend()
 
-    plt.show()
+    # this is the 20century avg line
+    rule = alt.Chart(pd.DataFrame({'y': [_20_cent_avg]})).mark_rule(
+        color='black', strokeDash=[5, 5],
+    ).encode(y='y:Q')
+
+    #combine the components
+    (segments + rule).save('hw1/report/chart.html')
 
     # print(columns)
     # print(df['Entity'])
