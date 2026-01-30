@@ -1,0 +1,40 @@
+You are handed a "dirty" dataset of Global Temperature Anomaly records (1880–2025). The data contains:
+
+Inconsistent date formats (e.g., "1990/01" and "Jan-1990").
+
+Missing temperature values for specific months.
+
+"Noise" from sensor malfunctions (outliers showing 500).
+
+You must write a script that performs the following:
+
+Standardization: Convert all dates to a uniform datetime object.
+
+Outlier Removal: Use the IQR method discussed to prune the 500errors.
+
+Imputation: Fill missing months using a linear interpolation (a logical step up from the mean imputation ).
+
+create a Dual-Encoded Chart:
+
+Mark: A line representing the temperature over time.
+
+Channel: Color (a Diverging Palette) where blue represents "below average" and red represents "above average" relative to the 20th-century mean.
+
+The final output is a 1-page PDF compiled in LaTeX using IEEE format. It must include:
+
+A Professional Table (booktabs) showing the top 5 warmest years.
+
+An Algebraic Section documenting the normalization used:
+
+ 
+The Visual Plot exported from Python as a high-resolution .pdf or .png and included via \includegraphics.
+
+*************************************************************************************************
+
+Grading Rubric for the Assignment
+Criteria	Requirement
+Data Integrity	Are the $500^{\circ}C$ outliers removed?
+LaTeX Syntax	Does the document compile without errors?
+Pipeline Logic	Is the color encoding used effectively for the anomaly?
+Math Formatting	Are the formulas typeset in "Display Math" mode?
+Remember: any sign of  AI performed the assignment is equal to an F 
