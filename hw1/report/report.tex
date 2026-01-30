@@ -1,0 +1,44 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath} % Math formulas
+\usepackage{graphicx} % Images
+\usepackage{booktabs}
+\usepackage{float}
+
+\title{Homework 1 Report}
+\author{Terry Mu (xm2204)}
+\date{\today}
+\begin{document}
+\maketitle
+\section{Top-5 Warmest Years}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{cc}
+\toprule
+Date  & Temperature Anomalies \\
+\midrule
+2024  & 0.719519 \\
+2023  & 0.600733 \\
+2025  & 0.591642 \\
+2016  & 0.439195 \\
+2020  & 0.432163 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Normalization}
+
+\[ z = \frac{x-\mu}{\sigma} \]
+
+\section{Result Plot}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]
+{./results.png}
+\caption{Results}
+\label{fig:results}
+\end{figure}
+
+\end{document}
