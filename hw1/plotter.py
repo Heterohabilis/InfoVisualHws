@@ -5,7 +5,7 @@ import altair as alt
 DATA_FILE = "hw1/data/global-temperature-anomalies-by-month.csv"
 CODE = 'Code'
 YEAR = 'Year'
-TA = 'Temperature anomaly'
+TA = 'Temperature anomaly'  #[T]emperature [A]nomaly
 ENTITY = 'Entity'
 DATE = 'Date'
 
@@ -59,50 +59,36 @@ if __name__ == "__main__":
     # calculate 20th century avg:
     _20_cent_avg = (df_clean[(df_clean[YEAR] >= 1900) &
                              (df_clean[YEAR] <= 1999)])[TA].mean()
-    print(_20_cent_avg)
+    _20_cent_std = (df_clean[(df_clean[YEAR] >= 1900) &
+                             (df_clean[YEAR] <= 1999)])[TA].std()
+    print(f"avg = {_20_cent_avg}, std = {_20_cent_std}")
 
     # print(df_clean.info)
 
-    # delta = {TA - avg}
-    df_clean["delta"] = df_clean["Temperature anomaly"] - _20_cent_avg
+    # delta = {TA - avg }, make it ezier to encode into color
+    # TODO: use normalization ?
+    df_clean["delta_n"] = (df_clean[TA] - _20_cent_avg) # / _20_cent_std
 
-
-    # plot it
-    # To achieve the color changing on the LINE, I choose to render the line by segments
-    # each segment has its own color
-    segments = (
-        alt.Chart(df_clean[[DATE, TA, "delta"]])
-        .transform_window(
-            sort=[{"field": DATE, "order": "ascending"}],   #early->late
-            next_date=f"lead({DATE})",
-            next_ta=f"lead({TA})",
-            next_delta="lead(delta)",
-        )
-        .transform_calculate(seg_delta="(datum.delta + datum.next_delta) / 2")
-        .mark_rule(strokeWidth=2)
-        .encode(
-            x=alt.X(f"{DATE}:T", title="Year"),
-            x2="next_date:T",
-            y=alt.Y(f"{TA}:Q", title="Temperature Anomaly"),
-            y2="next_ta:Q",
-            color=alt.Color(
-                "seg_delta:Q",
-                #higher->more red, lower ->more blue
-                scale=alt.Scale(scheme="redblue", reverse=True),
-                legend=alt.Legend(title=f"vs 20c avg ({_20_cent_avg:.2f} °C)"),
-            ),
-        )
-        .properties(title="Temperature Anomalies", width=600, height=400)
+    # draw a line to connect all points
+    # the line itself won't reflect the diff between TA and avg
+    line = alt.Chart(df_clean).mark_line(color='gray', opacity=0.5).encode(
+        x=f'{DATE}:T',
+        y=f'{TA}:Q'
     )
 
+    #Instead, let the point do that...
+    points = alt.Chart(df_clean).mark_point(filled=True).encode(
+        x=f'{DATE}:T',
+        y=f'{TA}:Q',
+        color=alt.Color("delta_n:Q", scale=alt.Scale(scheme="redblue", reverse=True),
+                        legend=alt.Legend(title=f"vs 20c avg (~{round(_20_cent_avg, 2)}°C)"),)
+    )
 
-    # this is the 20century avg line
-    rule = alt.Chart(pd.DataFrame({'y': [_20_cent_avg]})).mark_rule(
-        color='black', strokeDash=[5, 5],
-    ).encode(y='y:Q')
+    chart = line + points
 
-    #combine the components
-    (segments + rule).save('hw1/report/chart.html')
+    #because of the nature of alt, i have to export as chart.html; afterwards,
+    # I will use browser to download it as pdf or png.
+    chart.save("hw1/report/chart.html")
 
     # print(columns)
     # print(df['Entity'])
